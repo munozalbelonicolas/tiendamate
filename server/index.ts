@@ -1,7 +1,9 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import { handleDemo } from "./routes/demo";
+import { getProducts, getProductById, createProduct, updateProduct, deleteProduct } from "./routes/products";
+import { handleLogin, handleRegister } from "./routes/auth";
+import { createPreference } from "./routes/checkout";
 
 export function createServer() {
   const app = express();
@@ -11,13 +13,25 @@ export function createServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // Example API routes
+  // API Routes
   app.get("/api/ping", (_req, res) => {
     const ping = process.env.PING_MESSAGE ?? "ping";
     res.json({ message: ping });
   });
 
-  app.get("/api/demo", handleDemo);
+  // Auth Routes
+  app.post("/api/auth/login", handleLogin);
+  app.post("/api/auth/register", handleRegister);
+
+  // Products Routes
+  app.get("/api/products", getProducts);
+  app.get("/api/products/:id", getProductById);
+  app.post("/api/products", createProduct);
+  app.put("/api/products/:id", updateProduct);
+  app.delete("/api/products/:id", deleteProduct);
+
+  // Mercado Pago Checkout Route
+  app.post("/api/checkout/create-preference", createPreference);
 
   return app;
 }
