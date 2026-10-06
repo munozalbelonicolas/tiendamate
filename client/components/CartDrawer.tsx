@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { ShoppingBag, X, Plus, Minus, Trash2, CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
+import { ShoppingBag, X, Plus, Minus, Trash2, CheckCircle2, ArrowRight, Loader2, Package } from "lucide-react";
 
 export default function CartDrawer() {
   const { cart, isCartOpen, setIsCartOpen, updateQuantity, removeFromCart, totalPrice, totalItems, confirmOrder } = useCart();
@@ -90,29 +90,31 @@ export default function CartDrawer() {
               </div>
             ) : cart.length === 0 ? (
               <div className="py-16 text-center space-y-4">
-                <div className="w-16 h-16 bg-gray-100 text-gray-400 rounded-full flex items-center justify-center mx-auto text-2xl">
-                  🛒
+                <div className="w-16 h-16 bg-stone-100 text-stone-400 rounded-full flex items-center justify-center mx-auto">
+                  <ShoppingBag size={28} className="stroke-[1.5] text-stone-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800">Tu carrito está vacío</h3>
-                <p className="text-gray-500 text-sm">Explora nuestros mates y productos artesanales para agregar ítems.</p>
+                <h3 className="text-lg font-serif font-bold text-gray-900">Tu carrito está vacío</h3>
+                <p className="text-gray-500 text-sm max-w-xs mx-auto">
+                  Explora nuestros mates y productos artesanales para comenzar tu pedido.
+                </p>
               </div>
             ) : (
               cart.map((item) => (
                 <div
                   key={item.product.id}
-                  className="flex gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100 items-center justify-between"
+                  className="flex gap-4 p-4 bg-stone-50/80 rounded-xl border border-stone-200/60 items-center justify-between"
                 >
-                  <div className="w-16 h-16 bg-white rounded-lg p-2 border flex items-center justify-center flex-shrink-0">
+                  <div className="w-16 h-16 bg-white rounded-lg p-1.5 border border-stone-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {item.product.imageUrl ? (
                       <img src={item.product.imageUrl} alt={item.product.name} className="object-cover h-full w-full rounded" />
                     ) : (
-                      <span className="text-2xl">🧉</span>
+                      <Package size={24} className="text-emerald-700" />
                     )}
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-gray-900 text-sm truncate">{item.product.name}</h4>
-                    <p className="text-emerald-700 font-bold text-sm">
+                    <p className="text-emerald-800 font-bold text-sm">
                       ${item.product.price.toLocaleString("es-AR")} ARS
                     </p>
 
@@ -120,7 +122,7 @@ export default function CartDrawer() {
                       <button
                         onClick={() => updateQuantity(item.product.id, -1)}
                         disabled={loading}
-                        className="w-6 h-6 rounded bg-white border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 text-xs"
+                        className="w-6 h-6 rounded bg-white border border-stone-300 flex items-center justify-center text-gray-600 hover:bg-stone-100 text-xs transition"
                       >
                         <Minus size={12} />
                       </button>
@@ -128,7 +130,7 @@ export default function CartDrawer() {
                       <button
                         onClick={() => updateQuantity(item.product.id, 1)}
                         disabled={loading}
-                        className="w-6 h-6 rounded bg-white border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 text-xs"
+                        className="w-6 h-6 rounded bg-white border border-stone-300 flex items-center justify-center text-gray-600 hover:bg-stone-100 text-xs transition"
                       >
                         <Plus size={12} />
                       </button>
@@ -150,16 +152,21 @@ export default function CartDrawer() {
 
           {/* Footer */}
           {cart.length > 0 && !orderCompleted && (
-            <div className="p-6 bg-gray-50 border-t border-gray-200 space-y-4">
-              <div className="flex justify-between items-center text-lg font-bold text-gray-900">
-                <span>Total estimado:</span>
-                <span className="text-emerald-700">${totalPrice.toLocaleString("es-AR")} ARS</span>
+            <div className="p-6 bg-stone-50 border-t border-stone-200 space-y-4">
+              <div>
+                <div className="flex justify-between items-center text-lg font-bold text-gray-900">
+                  <span>Total estimado:</span>
+                  <span className="text-emerald-800 font-serif text-xl">${totalPrice.toLocaleString("es-AR")} ARS</span>
+                </div>
+                <p className="text-xs text-stone-500 mt-1">
+                  Hasta 3 cuotas fijas de <strong className="text-stone-700 font-semibold">${Math.round(totalPrice / 3).toLocaleString("es-AR")}</strong> sin interés
+                </p>
               </div>
 
               <button
                 onClick={handleCheckout}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 bg-emerald-700 text-white py-3.5 px-4 rounded-xl font-bold hover:bg-emerald-800 transition shadow-md disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 bg-emerald-700 text-white py-3.5 px-4 rounded-xl font-bold hover:bg-emerald-800 transition shadow-md hover:shadow-lg disabled:opacity-50"
               >
                 {loading ? (
                   <>
@@ -173,6 +180,10 @@ export default function CartDrawer() {
                   </>
                 )}
               </button>
+
+              <div className="flex items-center justify-center gap-2 text-xs text-stone-500 pt-1">
+                <span>🔒 Compra protegida con cifrado SSL</span>
+              </div>
             </div>
           )}
         </div>

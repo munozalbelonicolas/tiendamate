@@ -10,8 +10,7 @@ let products: Product[] = [
     description:
       "Mate artesanal de calabaza seleccionada con virola de alpaca cincelada a mano. Cada pieza es única, curada con aceite natural de lino para preservar su durabilidad. La virola exterior está grabada con motivos florales típicos de la artesanía argentina del Litoral. Ideal tanto para uso diario como para regalo. Incluye curado inicial y su funda de cuero.",
     stock: 15,
-    imageUrl:
-      "https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "/images/mate-imperial.jpg",
     specs: {
       Material: "Calabaza natural curada + virola de alpaca",
       Capacidad: "250 ml",
@@ -30,8 +29,7 @@ let products: Product[] = [
     description:
       "Termo de doble pared de acero inoxidable 304 food-grade con pico cebador de alta precisión. Su sistema de vacío mantiene bebidas calientes hasta 24 horas y frías hasta 48 horas. La tapa es hermética con sistema de rosca de seguridad anti-derrame. Perfecto para el campo, la oficina o viajes largos. Apto para lavar en lavavajillas.",
     stock: 20,
-    imageUrl:
-      "https://images.unsplash.com/photo-1544816155-12df9643f363?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "/images/termo-acero.jpg",
     specs: {
       Material: "Acero inoxidable 304 food-grade",
       Capacidad: "1000 ml (1 litro)",
@@ -51,8 +49,7 @@ let products: Product[] = [
     description:
       "Bombilla de alpaca pura con filtro desmontable estilo cuchara para fácil limpieza. El tubo es recto con curvatura ergonómica en el mango, grabado a mano con motivos geométricos. El filtro tipo cuchara retiene la yerba con máxima eficiencia sin obstruir el paso del líquido. Compatible con todos los tipos de mate. Incluye cepillo limpiador.",
     stock: 30,
-    imageUrl:
-      "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "/images/bombilla-alpaca.jpg",
     specs: {
       Material: "Alpaca pura (90% cobre, 10% níquel)",
       Largo: "18 cm",
@@ -71,8 +68,7 @@ let products: Product[] = [
     description:
       "Yerba mate con estacionamiento natural de 24 meses en silos de madera, blend suave con bajo contenido de polvo. Cultivada en plantaciones orgánicas certificadas de Misiones sin agroquímicos. Su sabor es suave, con notas herbáceas y leve toque ahumado. Rinde entre 30 y 40 cebadas por mate. Ideal para cebadores exigentes y paladares delicados.",
     stock: 50,
-    imageUrl:
-      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&auto=format&fit=crop&q=80",
+    imageUrl: "/images/yerba-organica.jpg",
     specs: {
       Peso: "1 kg",
       Estacionamiento: "24 meses en silo de madera",
@@ -81,6 +77,24 @@ let products: Product[] = [
       Blend: "Palo + hoja, bajo polvo",
       Rendimiento: "30-40 cebadas por mate",
       "Sin TACC": "Apto celíacos",
+    },
+  },
+  {
+    id: 5,
+    name: "Matera Portatermo de Cuero",
+    price: 24000,
+    category: "Accesorios",
+    description:
+      "Matera cilíndrica de cuero vacuno legítimo seleccionado, cosida a mano con costuras reforzadas enceradas. Cuenta con correa regulable de transporte, base rígida estable y hebilla de bronce macizo. Diseñada para transportar termo de 1L, mate y bombilla con total comodidad y elegancia tradicional.",
+    stock: 12,
+    imageUrl: "/images/cat-accesorios.jpg",
+    specs: {
+      Material: "Cuero vacuno genuino curtido vegetal",
+      Capacidad: "Termo 1L + mate + yerbera",
+      Correa: "Ajustable con hombrera acolchada",
+      Herrajes: "Bronce macizo envejecido",
+      Origen: "La Pampa, Argentina",
+      Garantía: "De por vida en costuras",
     },
   },
 ];

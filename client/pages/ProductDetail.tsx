@@ -12,6 +12,10 @@ import {
   Loader2,
   Tag,
   Info,
+  CreditCard,
+  ShieldCheck,
+  Truck,
+  Star,
 } from "lucide-react";
 import { Product } from "@shared/api";
 import { useCart } from "@/context/CartContext";
@@ -61,24 +65,14 @@ export default function ProductDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // ── Manejador: Agregar al carrito ─────────────────────────
+  // ── Manejador: Agregar al carrito (Habilitado para todos) ──
   const handleAddToCart = () => {
     if (!product) return;
-
-    // Si no está autenticado, redirigir a login conservando la ruta de origen
-    if (!isAuthenticated) {
-      navigate("/login", { state: { from: { pathname: `/product/${id}` } } });
-      return;
-    }
     addToCart(product);
   };
 
   // ── Manejador: Abrir panel del carrito ────────────────────
   const handleOpenCart = () => {
-    if (!isAuthenticated) {
-      navigate("/login");
-      return;
-    }
     setIsCartOpen(true);
   };
 
@@ -187,7 +181,7 @@ export default function ProductDetail() {
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <span className="text-8xl">🧉</span>
+                  <Package size={64} className="text-emerald-700 stroke-[1.5]" />
                 </div>
               )}
             </div>
@@ -213,31 +207,50 @@ export default function ProductDetail() {
 
           {/* ── Columna Derecha: Información ── */}
           <div className="flex flex-col gap-6">
-            {/* Categoría + Nombre */}
+            {/* Categoría + Nombre + Rating */}
             <div>
-              <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full mb-3">
-                <Tag size={12} />
-                {product.category}
-              </span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full border border-emerald-200">
+                  <Tag size={12} />
+                  {product.category}
+                </span>
+                <div className="flex items-center gap-1 text-xs text-amber-600 font-bold">
+                  <div className="flex text-amber-500">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} size={14} className="fill-amber-400 text-amber-400" />
+                    ))}
+                  </div>
+                  <span>4.9 (42 opiniones)</span>
+                </div>
+              </div>
               <h1 className="text-3xl md:text-4xl font-serif font-bold text-gray-900 leading-tight">
                 {product.name}
               </h1>
             </div>
 
-            {/* Precio */}
-            <div className="flex items-baseline gap-3">
-              <span className="text-4xl font-bold text-emerald-800">
-                ${product.price.toLocaleString("es-AR")}
-              </span>
-              <span className="text-gray-500 text-sm font-medium">ARS</span>
+            {/* Precio + Cuotas */}
+            <div className="bg-stone-50 border border-stone-200/80 rounded-2xl p-4 space-y-2">
+              <div className="flex items-baseline gap-3">
+                <span className="text-4xl font-bold text-emerald-900 font-serif">
+                  ${product.price.toLocaleString("es-AR")}
+                </span>
+                <span className="text-gray-500 text-sm font-medium">ARS</span>
+              </div>
+              <div className="flex items-center gap-2 text-stone-800 text-sm font-semibold">
+                <CreditCard size={16} className="text-emerald-700" />
+                <span>Hasta 3 cuotas fijas sin interés de ${Math.round(product.price / 3).toLocaleString("es-AR")}</span>
+              </div>
+              <p className="text-xs text-emerald-800 font-medium">
+                🎁 10% de descuento abonando por Transferencia Bancaria: <strong>${Math.round(product.price * 0.9).toLocaleString("es-AR")}</strong>
+              </p>
             </div>
 
             {/* Descripción completa */}
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Info size={16} className="text-gray-400" />
-                <span className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                  Descripción
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Descripción del Producto
                 </span>
               </div>
               <p className="text-gray-600 leading-relaxed text-[15px]">
@@ -249,8 +262,8 @@ export default function ProductDetail() {
             {qtyInCart > 0 ? (
               <div className="space-y-3">
                 {/* Badge de confirmación */}
-                <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 px-4 py-2.5 rounded-xl border border-emerald-200">
-                  <CheckCircle2 size={18} className="flex-shrink-0" />
+                <div className="flex items-center gap-2 text-emerald-800 bg-emerald-50 px-4 py-2.5 rounded-xl border border-emerald-200">
+                  <CheckCircle2 size={18} className="flex-shrink-0 text-emerald-600" />
                   <span className="text-sm font-semibold">
                     {qtyInCart === 1
                       ? "1 unidad en tu carrito"
@@ -282,7 +295,7 @@ export default function ProductDetail() {
 
                   <button
                     onClick={handleOpenCart}
-                    className="flex-1 flex items-center justify-center gap-2 bg-slate-900 text-white py-2.5 px-4 rounded-xl font-semibold hover:bg-slate-800 transition text-sm"
+                    className="flex-1 flex items-center justify-center gap-2 bg-slate-900 text-white py-3 px-4 rounded-xl font-semibold hover:bg-slate-800 transition text-sm shadow-md"
                   >
                     <ShoppingBag size={16} />
                     Ver Carrito
@@ -294,26 +307,24 @@ export default function ProductDetail() {
               <button
                 onClick={handleAddToCart}
                 disabled={product.stock === 0}
-                className="flex items-center justify-center gap-3 bg-emerald-700 text-white py-4 px-6 rounded-2xl font-bold text-lg hover:bg-emerald-800 transition transform hover:scale-[1.02] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="flex items-center justify-center gap-3 bg-emerald-700 text-white py-4 px-6 rounded-2xl font-bold text-lg hover:bg-emerald-800 transition transform hover:scale-[1.01] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 <ShoppingCart size={22} />
                 {product.stock === 0 ? "Sin Stock" : "Añadir al Carrito"}
               </button>
             )}
 
-            {/* Aviso si no está autenticado */}
-            {!isAuthenticated && (
-              <p className="text-xs text-gray-500 text-center">
-                Necesitás{" "}
-                <button
-                  onClick={() => navigate("/login")}
-                  className="text-emerald-700 font-semibold hover:underline"
-                >
-                  iniciar sesión
-                </button>{" "}
-                para agregar al carrito.
-              </p>
-            )}
+            {/* Garantías y Beneficios de Confianza */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div className="flex items-center gap-2.5 text-xs text-stone-600 bg-stone-50 border border-stone-200/60 p-2.5 rounded-xl">
+                <Truck size={16} className="text-amber-700 flex-shrink-0" />
+                <span>Envíos a todo el país con seguimiento</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-xs text-stone-600 bg-stone-50 border border-stone-200/60 p-2.5 rounded-xl">
+                <ShieldCheck size={16} className="text-emerald-700 flex-shrink-0" />
+                <span>Garantía de calidad y curado artesanal</span>
+              </div>
+            </div>
 
             {/* ── Tabla de Especificaciones Técnicas ── */}
             {product.specs && Object.keys(product.specs).length > 0 && (
