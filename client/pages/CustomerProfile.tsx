@@ -46,12 +46,13 @@ export default function CustomerProfile() {
           {isAdmin && (
             <button
               onClick={() => navigate("/admin")}
-              className="flex items-center gap-2 bg-slate-900 text-white px-3 py-1.5 rounded-md text-sm font-semibold hover:bg-slate-800 transition"
+              className="flex items-center gap-1.5 bg-[#FAF7F2] hover:bg-[#BD532B] text-[#3A3330] hover:text-white border border-[#EFE8DF] hover:border-[#BD532B] px-3.5 py-1.5 rounded-full text-xs font-semibold transition group"
             >
-              <Shield size={16} className="text-emerald-400" />
+              <Shield size={14} className="text-[#BD532B] group-hover:text-white transition-colors" />
               Panel de Administrador
             </button>
           )}
+
         </div>
       </header>
 

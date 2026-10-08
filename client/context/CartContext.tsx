@@ -22,7 +22,7 @@ interface CartContextType {
   removeFromCart: (productId: number) => void;
   updateQuantity: (productId: number, delta: number) => void;
   clearCart: () => void;
-  confirmOrder: (userEmail?: string) => Order;
+  confirmOrder: (userEmail?: string) => Promise<Order>;
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
   totalItems: number;
@@ -92,27 +92,58 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCart([]);
   };
 
-  const totalPrice = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
+  const totalPrice = cart.reduce(
+    (acc, item) => acc + (item.product.promoPrice ?? item.product.price) * item.quantity,
+    0
+  );
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  const confirmOrder = (userEmail?: string): Order => {
-    const newOrder: Order = {
+  const confirmOrder = async (userEmail?: string): Promise<Order> => {
+    try {
+      // Persist real order in SQLite
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName: userEmail ? userEmail.split("@")[0] : "Cliente Web",
+          customerEmail: userEmail || "cliente@tiendamate.com",
+          items: cart.map((i) => ({ productId: i.product.id, quantity: i.quantity })),
+          paymentMethod: "mercadopago",
+        }),
+      });
+
+      if (res.ok) {
+        const persisted = await res.json();
+        const newOrder: Order = {
+          id: persisted.orderNumber || `PED-${persisted.id}`,
+          date: new Date(persisted.createdAt).toLocaleDateString("es-AR", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }),
+          items: [...cart],
+          total: persisted.total || totalPrice,
+          userEmail,
+        };
+        setOrders((prev) => [newOrder, ...prev]);
+        clearCart();
+        return newOrder;
+      }
+    } catch (err) {
+      console.error("Error persistiendo orden en backend:", err);
+    }
+
+    // Fallback if network offline
+    const localFallbackOrder: Order = {
       id: `PED-${Math.floor(100000 + Math.random() * 900000)}`,
-      date: new Date().toLocaleDateString("es-AR", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      date: new Date().toLocaleDateString("es-AR"),
       items: [...cart],
       total: totalPrice,
       userEmail,
     };
-
-    setOrders((prev) => [newOrder, ...prev]);
+    setOrders((prev) => [localFallbackOrder, ...prev]);
     clearCart();
-    return newOrder;
+    return localFallbackOrder;
   };
 
   return (

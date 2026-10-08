@@ -1,9 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { User, UserRole } from "@shared/api";
+import { User, AdminRole, Permission, EnvironmentInfo, UserRole } from "@shared/api";
 import { auth } from "@/lib/firebase";
 import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
   signInWithPopup,
   GoogleAuthProvider,
   signOut, 
@@ -13,12 +11,17 @@ import {
 interface AuthContextType {
   user: User | null;
   token: string | null;
+  role: AdminRole | null;
+  permissions: Permission[];
+  hasPermission: (permission: Permission) => boolean;
+  loginWithGoogle: () => Promise<User>;
+  loginAsDevDemo: (customEmail?: string) => Promise<User>;
   login: (email: string, role?: UserRole) => Promise<User>;
   register: (name: string, email: string, role?: UserRole) => Promise<User>;
-  loginWithGoogle: () => Promise<User>;
   logout: () => void;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  envInfo: EnvironmentInfo | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +36,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return localStorage.getItem("tiendamate_token");
   });
 
+  const [role, setRole] = useState<AdminRole | null>(() => {
+    return (localStorage.getItem("tiendamate_role") as AdminRole) || null;
+  });
+
+  const [permissions, setPermissions] = useState<Permission[]>(() => {
+    const saved = localStorage.getItem("tiendamate_permissions");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [envInfo, setEnvInfo] = useState<EnvironmentInfo | null>(null);
+
+  // Fetch env info on mount
+  useEffect(() => {
+    fetch("/api/env")
+      .then((res) => res.json())
+      .then((data: EnvironmentInfo) => setEnvInfo(data))
+      .catch((err) => console.error("Error obteniendo entorno:", err));
+  }, []);
+
   useEffect(() => {
     if (user) {
       localStorage.setItem("tiendamate_user", JSON.stringify(user));
@@ -45,146 +67,128 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       localStorage.removeItem("tiendamate_token");
     }
-  }, [user, token]);
 
-  // Firebase auth state listener
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      if (fbUser) {
-        const userRole: UserRole = fbUser.email?.includes("admin") ? "admin" : "client";
-        const currentUser: User = {
-          id: fbUser.uid,
-          name: fbUser.displayName || fbUser.email?.split("@")[0] || "Usuario",
-          email: fbUser.email || "",
-          role: userRole
-        };
-        const userToken = await fbUser.getIdToken();
-        setUser(currentUser);
-        setToken(userToken);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const login = async (email: string, role?: UserRole): Promise<User> => {
-    try {
-      if (import.meta.env.VITE_FIREBASE_API_KEY && !import.meta.env.VITE_FIREBASE_API_KEY.includes("YOUR_API_KEY")) {
-        const userCred = await signInWithEmailAndPassword(auth, email, "password123");
-        const fbUser = userCred.user;
-        const userRole: UserRole = role || (email.includes("admin") ? "admin" : "client");
-        const loggedUser: User = {
-          id: fbUser.uid,
-          name: fbUser.displayName || email.split("@")[0],
-          email: fbUser.email || email,
-          role: userRole
-        };
-        const idToken = await fbUser.getIdToken();
-        setUser(loggedUser);
-        setToken(idToken);
-        return loggedUser;
-      }
-
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, role }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Error al iniciar sesión");
-      }
-
-      const data = await res.json();
-      setUser(data.user);
-      setToken(data.token);
-      return data.user;
-    } catch (err: any) {
-      const fallbackUser: User = {
-        id: `usr_${Date.now()}`,
-        name: email.split("@")[0] || "Usuario",
-        email,
-        role: role || (email.includes("admin") ? "admin" : "client"),
-      };
-      setUser(fallbackUser);
-      setToken(`mock_token_${Date.now()}`);
-      return fallbackUser;
+    if (role) {
+      localStorage.setItem("tiendamate_role", role);
+    } else {
+      localStorage.removeItem("tiendamate_role");
     }
+
+    if (permissions && permissions.length > 0) {
+      localStorage.setItem("tiendamate_permissions", JSON.stringify(permissions));
+    } else {
+      localStorage.removeItem("tiendamate_permissions");
+    }
+  }, [user, token, role, permissions]);
+
+  const hasPermission = (perm: Permission): boolean => {
+    if (!role) return false;
+    if (role === "SUPER_ADMIN" || role === "ADMIN") return true;
+    return permissions.includes(perm);
   };
 
-  const register = async (name: string, email: string, role: UserRole = "client"): Promise<User> => {
-    try {
-      if (import.meta.env.VITE_FIREBASE_API_KEY && !import.meta.env.VITE_FIREBASE_API_KEY.includes("YOUR_API_KEY")) {
-        const userCred = await createUserWithEmailAndPassword(auth, email, "password123");
-        const fbUser = userCred.user;
-        const newUser: User = {
-          id: fbUser.uid,
-          name,
-          email,
-          role
-        };
-        const idToken = await fbUser.getIdToken();
-        setUser(newUser);
-        setToken(idToken);
-        return newUser;
-      }
-
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, role }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Error al registrarse");
-      }
-
-      const data = await res.json();
-      setUser(data.user);
-      setToken(data.token);
-      return data.user;
-    } catch (err: any) {
-      const fallbackUser: User = {
-        id: `usr_${Date.now()}`,
-        name,
-        email,
-        role,
-      };
-      setUser(fallbackUser);
-      setToken(`mock_token_${Date.now()}`);
-      return fallbackUser;
-    }
-  };
-
+  /**
+   * Real Google OAuth Login
+   */
   const loginWithGoogle = async (): Promise<User> => {
     try {
       const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
       const userCred = await signInWithPopup(auth, provider);
       const fbUser = userCred.user;
-      const userRole: UserRole = fbUser.email?.includes("admin") ? "admin" : "client";
-      const googleUser: User = {
-        id: fbUser.uid,
-        name: fbUser.displayName || "Usuario Google",
-        email: fbUser.email || "",
-        role: userRole,
-      };
-      const idToken = await fbUser.getIdToken();
-      setUser(googleUser);
-      setToken(idToken);
-      return googleUser;
+      const credential = GoogleAuthProvider.credentialFromResult(userCred);
+      const googleIdToken = credential?.idToken;
+      const fbIdToken = await fbUser.getIdToken();
+
+      // Exchange with backend for verified tenant membership
+      const res = await fetch("/api/admin/auth/google-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          idToken: fbIdToken,
+          googleIdToken: googleIdToken || undefined,
+          email: fbUser.email,
+          name: fbUser.displayName,
+          picture: fbUser.photoURL,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.authorized) {
+        throw new Error(data.message || "Tu cuenta de Google no tiene permisos autorizados en este comercio.");
+      }
+
+      setUser(data.user);
+      setToken(data.token);
+      setRole(data.role);
+      setPermissions(data.permissions || []);
+      return data.user;
     } catch (err: any) {
-      // Fallback Google login for local dev simulation
-      const fallbackGoogleUser: User = {
-        id: `usr_google_${Date.now()}`,
-        name: "Usuario Gmail",
-        email: "usuario.gmail@gmail.com",
-        role: "client",
-      };
-      setUser(fallbackGoogleUser);
-      setToken(`mock_google_token_${Date.now()}`);
-      return fallbackGoogleUser;
+      console.error("Error en login con Google:", err);
+      throw err;
     }
+  };
+
+  /**
+   * Dev Demo Login (only available when APP_ENV === 'demo')
+   */
+  const loginAsDevDemo = async (customEmail?: string): Promise<User> => {
+    const res = await fetch("/api/admin/auth/dev-demo-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: customEmail }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.authorized) {
+      throw new Error(data.message || "Error al ingresar en modo DEMO.");
+    }
+
+    setUser(data.user);
+    setToken(data.token);
+    setRole(data.role);
+    setPermissions(data.permissions || []);
+    return data.user;
+  };
+
+  /**
+   * Storefront Client Login
+   */
+  const login = async (email: string, clientRole: UserRole = "client"): Promise<User> => {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, role: clientRole }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || "Error al iniciar sesión");
+    }
+
+    setUser(data.user);
+    setToken(data.token);
+    return data.user;
+  };
+
+  /**
+   * Storefront Client Register
+   */
+  const register = async (name: string, email: string, clientRole: UserRole = "client"): Promise<User> => {
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, role: clientRole }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || "Error al registrarse");
+    }
+
+    setUser(data.user);
+    setToken(data.token);
+    return data.user;
   };
 
   const logout = () => {
@@ -193,19 +197,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setUser(null);
     setToken(null);
+    setRole(null);
+    setPermissions([]);
+    localStorage.removeItem("tiendamate_user");
+    localStorage.removeItem("tiendamate_token");
+    localStorage.removeItem("tiendamate_role");
+    localStorage.removeItem("tiendamate_permissions");
   };
+
+  const isAdmin = ["SUPER_ADMIN", "ADMIN", "MANAGER", "OPERADOR", "VIEWER"].includes(role || user?.role || "");
 
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
+        role,
+        permissions,
+        hasPermission,
+        loginWithGoogle,
+        loginAsDevDemo,
         login,
         register,
-        loginWithGoogle,
         logout,
         isAuthenticated: !!user,
-        isAdmin: user?.role === "admin",
+        isAdmin,
+        envInfo,
       }}
     >
       {children}

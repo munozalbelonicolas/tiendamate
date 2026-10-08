@@ -1,171 +1,76 @@
 import { RequestHandler } from "express";
-import { Product } from "@shared/api";
+import {
+  listProducts,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+} from "../db/repositories/productsRepository";
+import { getDatabaseConfig } from "../db/config";
 
-let products: Product[] = [
-  {
-    id: 1,
-    name: "Mate Imperial de Calabaza",
-    price: 18500,
-    category: "Mates",
-    description:
-      "Mate artesanal de calabaza seleccionada con virola de alpaca cincelada a mano. Cada pieza es única, curada con aceite natural de lino para preservar su durabilidad. La virola exterior está grabada con motivos florales típicos de la artesanía argentina del Litoral. Ideal tanto para uso diario como para regalo. Incluye curado inicial y su funda de cuero.",
-    stock: 15,
-    imageUrl: "/images/mate-imperial.jpg",
-    specs: {
-      Material: "Calabaza natural curada + virola de alpaca",
-      Capacidad: "250 ml",
-      Altura: "12 cm",
-      Diámetro: "8 cm",
-      Acabado: "Aceite de lino natural",
-      Origen: "Entre Ríos, Argentina",
-      Incluye: "Funda de cuero y bombilla",
-    },
-  },
-  {
-    id: 2,
-    name: "Termo de Acero Inoxidable 1L",
-    price: 32000,
-    category: "Termos",
-    description:
-      "Termo de doble pared de acero inoxidable 304 food-grade con pico cebador de alta precisión. Su sistema de vacío mantiene bebidas calientes hasta 24 horas y frías hasta 48 horas. La tapa es hermética con sistema de rosca de seguridad anti-derrame. Perfecto para el campo, la oficina o viajes largos. Apto para lavar en lavavajillas.",
-    stock: 20,
-    imageUrl: "/images/termo-acero.jpg",
-    specs: {
-      Material: "Acero inoxidable 304 food-grade",
-      Capacidad: "1000 ml (1 litro)",
-      Altura: "30 cm",
-      Temperatura: "Caliente 24hs / Frío 48hs",
-      Tapa: "Hermética anti-derrame rosca seguridad",
-      Pico: "Cebador de precisión ajustable",
-      Limpieza: "Apto lavavajillas",
-      Garantía: "12 meses",
-    },
-  },
-  {
-    id: 3,
-    name: "Bombilla de Alpaca Labrada",
-    price: 8500,
-    category: "Bombillas",
-    description:
-      "Bombilla de alpaca pura con filtro desmontable estilo cuchara para fácil limpieza. El tubo es recto con curvatura ergonómica en el mango, grabado a mano con motivos geométricos. El filtro tipo cuchara retiene la yerba con máxima eficiencia sin obstruir el paso del líquido. Compatible con todos los tipos de mate. Incluye cepillo limpiador.",
-    stock: 30,
-    imageUrl: "/images/bombilla-alpaca.jpg",
-    specs: {
-      Material: "Alpaca pura (90% cobre, 10% níquel)",
-      Largo: "18 cm",
-      Tipo: "Cuchara con filtro desmontable",
-      Grabado: "Motivos geométricos tallados a mano",
-      Compatibilidad: "Todos los tipos de mate",
-      Incluye: "Cepillo limpiador de acero",
-      Origen: "Córdoba, Argentina",
-    },
-  },
-  {
-    id: 4,
-    name: "Yerba Mate Premium Orgánica 1kg",
-    price: 4500,
-    category: "Yerbas",
-    description:
-      "Yerba mate con estacionamiento natural de 24 meses en silos de madera, blend suave con bajo contenido de polvo. Cultivada en plantaciones orgánicas certificadas de Misiones sin agroquímicos. Su sabor es suave, con notas herbáceas y leve toque ahumado. Rinde entre 30 y 40 cebadas por mate. Ideal para cebadores exigentes y paladares delicados.",
-    stock: 50,
-    imageUrl: "/images/yerba-organica.jpg",
-    specs: {
-      Peso: "1 kg",
-      Estacionamiento: "24 meses en silo de madera",
-      Cultivo: "Orgánico certificado SENASA",
-      Origen: "Misiones, Argentina",
-      Blend: "Palo + hoja, bajo polvo",
-      Rendimiento: "30-40 cebadas por mate",
-      "Sin TACC": "Apto celíacos",
-    },
-  },
-  {
-    id: 5,
-    name: "Matera Portatermo de Cuero",
-    price: 24000,
-    category: "Accesorios",
-    description:
-      "Matera cilíndrica de cuero vacuno legítimo seleccionado, cosida a mano con costuras reforzadas enceradas. Cuenta con correa regulable de transporte, base rígida estable y hebilla de bronce macizo. Diseñada para transportar termo de 1L, mate y bombilla con total comodidad y elegancia tradicional.",
-    stock: 12,
-    imageUrl: "/images/cat-accesorios.jpg",
-    specs: {
-      Material: "Cuero vacuno genuino curtido vegetal",
-      Capacidad: "Termo 1L + mate + yerbera",
-      Correa: "Ajustable con hombrera acolchada",
-      Herrajes: "Bronce macizo envejecido",
-      Origen: "La Pampa, Argentina",
-      Garantía: "De por vida en costuras",
-    },
-  },
-];
+export const getProducts: RequestHandler = (req, res) => {
+  const tenantId = getDatabaseConfig().tenantId;
+  const { category, search, page, limit } = req.query;
 
-export const getProducts: RequestHandler = (_req, res) => {
-  res.json(products);
+  const result = listProducts(tenantId, {
+    category: category ? String(category) : undefined,
+    search: search ? String(search) : undefined,
+    page: page ? Number(page) : 1,
+    limit: limit ? Number(limit) : 50,
+    includeUnpublished: false, // Public store only sees published products
+  });
+
+  res.json(result.items);
 };
 
-export const getProductById: RequestHandler = (req, res) => {
+export const getProductByIdHandler: RequestHandler = (req, res) => {
+  const tenantId = getDatabaseConfig().tenantId;
   const id = parseInt(String(req.params.id), 10);
-  const product = products.find((p) => p.id === id);
-  if (!product) {
-    res.status(404).json({ message: "Producto no encontrado" });
+
+  if (isNaN(id)) {
+    res.status(400).json({ message: "ID de producto inválido." });
     return;
   }
+
+  const product = getProductById(tenantId, id);
+  if (!product || !product.isPublished) {
+    res.status(404).json({ message: "Producto no encontrado." });
+    return;
+  }
+
   res.json(product);
 };
 
-export const createProduct: RequestHandler = (req, res) => {
-  const { name, price, category, description, stock, imageUrl } = req.body;
-  
-  if (!name || price === undefined) {
-    res.status(400).json({ message: "Nombre y precio son obligatorios" });
-    return;
+export const createProductHandler: RequestHandler = (req, res) => {
+  const tenantId = getDatabaseConfig().tenantId;
+  try {
+    const newProduct = createProduct(tenantId, req.body, "store_admin@tiendamate.com");
+    res.status(201).json(newProduct);
+  } catch (err: any) {
+    res.status(400).json({ message: err.message || "Error al crear producto." });
   }
-
-  const newProduct: Product = {
-    id: products.length > 0 ? Math.max(...products.map((p) => p.id)) + 1 : 1,
-    name,
-    price: Number(price),
-    category: category || "General",
-    description: description || "",
-    stock: stock !== undefined ? Number(stock) : 10,
-    imageUrl
-  };
-
-  products.push(newProduct);
-  res.status(201).json(newProduct);
 };
 
-export const updateProduct: RequestHandler = (req, res) => {
+export const updateProductHandler: RequestHandler = (req, res) => {
+  const tenantId = getDatabaseConfig().tenantId;
   const id = parseInt(String(req.params.id), 10);
-  const index = products.findIndex((p) => p.id === id);
 
-  if (index === -1) {
-    res.status(404).json({ message: "Producto no encontrado" });
-    return;
+  try {
+    const updated = updateProduct(tenantId, id, req.body, "store_admin@tiendamate.com");
+    res.json(updated);
+  } catch (err: any) {
+    res.status(400).json({ message: err.message || "Error al actualizar producto." });
   }
-
-  const existing = products[index];
-  const updatedProduct: Product = {
-    ...existing,
-    ...req.body,
-    id, // Keep original ID
-    price: req.body.price !== undefined ? Number(req.body.price) : existing.price,
-    stock: req.body.stock !== undefined ? Number(req.body.stock) : existing.stock,
-  };
-
-  products[index] = updatedProduct;
-  res.json(updatedProduct);
 };
 
-export const deleteProduct: RequestHandler = (req, res) => {
+export const deleteProductHandler: RequestHandler = (req, res) => {
+  const tenantId = getDatabaseConfig().tenantId;
   const id = parseInt(String(req.params.id), 10);
-  const initialLength = products.length;
-  products = products.filter((p) => p.id !== id);
 
-  if (products.length === initialLength) {
-    res.status(404).json({ message: "Producto no encontrado" });
-    return;
+  try {
+    deleteProduct(tenantId, id, "store_admin@tiendamate.com");
+    res.json({ message: "Producto eliminado correctamente." });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message || "Error al eliminar producto." });
   }
-
-  res.json({ message: "Producto eliminado correctamente" });
 };

@@ -25,3 +25,6 @@ dist-ssr
 
 .config/
 !.env
+
+# SQLite local database files
+data/*.sqlite*

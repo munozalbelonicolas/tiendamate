@@ -183,16 +183,18 @@ export default function Index() {
                 {isAdmin && (
                   <button
                     onClick={() => navigate("/admin")}
-                    className="hidden lg:flex items-center gap-1 bg-stone-900 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-semibold hover:bg-stone-800"
+                    className="hidden lg:flex items-center gap-1.5 bg-[#FAF7F2] hover:bg-[#BD532B] text-[#3A3330] hover:text-white border border-[#EFE8DF] hover:border-[#BD532B] text-xs px-3.5 py-1.5 rounded-full font-semibold transition-all duration-200 shadow-xs group"
+                    title="Panel de Administración"
                   >
-                    <ShieldCheck size={13} className="text-amber-400" />
-                    Admin
+                    <ShieldCheck size={14} className="text-[#BD532B] group-hover:text-white transition-colors" />
+                    <span>Admin</span>
                   </button>
                 )}
+
                 <button
-                  onClick={() => navigate("/profile")}
+                  onClick={() => navigate("/cuenta")}
                   className="p-1 text-[#3A3330] hover:text-[#BD532B] transition"
-                  title="Mi Perfil"
+                  title="Mi Cuenta"
                 >
                   <UserIcon size={22} className="stroke-[1.6]" />
                 </button>

@@ -1,47 +1,43 @@
 import { RequestHandler } from "express";
 import { User, AuthResponse } from "@shared/api";
-
-const mockUsers: User[] = [
-  {
-    id: "usr_admin",
-    name: "Administrador TiendaMate",
-    email: "admin@tiendamate.com",
-    role: "admin"
-  },
-  {
-    id: "usr_client",
-    name: "Juan Pérez",
-    email: "cliente@gmail.com",
-    role: "client"
-  }
-];
+import { getDatabaseConfig } from "../db/config";
+import { getOrCreateCustomerByEmail } from "../db/repositories/customerPortalRepository";
+import { createCustomerSessionToken } from "../middleware/auth";
 
 export const handleLogin: RequestHandler = (req, res) => {
-  const { email, password } = req.body;
+  const { email } = req.body;
 
-  if (!email) {
+  if (!email || !email.trim()) {
     res.status(400).json({ message: "El correo electrónico es obligatorio" });
     return;
   }
 
-  // Find existing mock user or auto-login with role determination
-  let user = mockUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  const cleanEmail = email.trim().toLowerCase();
+  const tenantId = getDatabaseConfig().tenantId;
 
-  if (!user) {
-    // If logging in with admin email prefix or domain, set admin role
-    const isAdmin = email.toLowerCase().includes("admin");
-    user = {
-      id: `usr_${Date.now()}`,
-      name: email.split("@")[0],
-      email,
-      role: isAdmin ? "admin" : "client"
-    };
-    mockUsers.push(user);
-  }
+  // Get or initialize customer in SQLite
+  const customer = getOrCreateCustomerByEmail(tenantId, cleanEmail);
+
+  const fullName = `${customer.first_name || ""} ${customer.last_name || ""}`.trim() || cleanEmail.split("@")[0];
+  const isAdmin = cleanEmail.includes("admin") || cleanEmail === "munozalbelonicolas@gmail.com";
+
+  const user: User = {
+    id: `cust_${customer.id}`,
+    name: fullName,
+    email: customer.email,
+    role: isAdmin ? "admin" : "client",
+  };
+
+  const token = createCustomerSessionToken({
+    customerId: customer.id,
+    email: customer.email,
+    name: fullName,
+    tenantId,
+  });
 
   const response: AuthResponse = {
     user,
-    token: `mock_jwt_token_${user.id}_${Date.now()}`
+    token,
   };
 
   res.json(response);
@@ -50,29 +46,36 @@ export const handleLogin: RequestHandler = (req, res) => {
 export const handleRegister: RequestHandler = (req, res) => {
   const { name, email, role } = req.body;
 
-  if (!name || !email) {
-    res.status(400).json({ message: "Nombre y correo electrónico son obligatorios" });
+  if (!email || !email.trim()) {
+    res.status(400).json({ message: "El correo electrónico es obligatorio" });
     return;
   }
 
-  const existing = mockUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
-  if (existing) {
-    res.status(400).json({ message: "El usuario ya se encuentra registrado" });
-    return;
-  }
+  const cleanEmail = email.trim().toLowerCase();
+  const tenantId = getDatabaseConfig().tenantId;
 
-  const newUser: User = {
-    id: `usr_${Date.now()}`,
-    name,
-    email,
-    role: role === "admin" ? "admin" : "client"
+  // Create customer in SQLite database
+  const customer = getOrCreateCustomerByEmail(tenantId, cleanEmail, name);
+
+  const fullName = `${customer.first_name || ""} ${customer.last_name || ""}`.trim() || name || cleanEmail.split("@")[0];
+
+  const user: User = {
+    id: `cust_${customer.id}`,
+    name: fullName,
+    email: customer.email,
+    role: role === "admin" ? "admin" : "client",
   };
 
-  mockUsers.push(newUser);
+  const token = createCustomerSessionToken({
+    customerId: customer.id,
+    email: customer.email,
+    name: fullName,
+    tenantId,
+  });
 
   const response: AuthResponse = {
-    user: newUser,
-    token: `mock_jwt_token_${newUser.id}_${Date.now()}`
+    user,
+    token,
   };
 
   res.status(201).json(response);
