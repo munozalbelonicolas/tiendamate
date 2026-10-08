@@ -35,7 +35,8 @@
     "shared/**/*",
     "scripts/**/*.ts",
     "vite.config.ts",
-    "vite.config.server.ts"
+    "vite.config.server.ts",
+    "api/**/*"
   ],
   "exclude": ["node_modules", "dist"]
 }

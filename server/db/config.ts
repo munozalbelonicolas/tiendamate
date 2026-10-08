@@ -20,8 +20,12 @@ export function getDatabaseConfig(): DatabaseConfig {
   const tenantId = process.env.TENANT_ID || "tiendamate";
   const initialAdminEmail = process.env.INITIAL_ADMIN_EMAIL || "admin@tiendamate.com";
 
-  // Ensure data directory exists
-  const dataDir = path.resolve(process.cwd(), "data");
+  // Ensure data directory exists (on Vercel serverless, use writable /tmp)
+  const isVercel = Boolean(process.env.VERCEL);
+  const dataDir = isVercel
+    ? path.resolve("/tmp", "tiendamate_data")
+    : path.resolve(process.cwd(), "data");
+
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
