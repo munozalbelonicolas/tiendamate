@@ -85,6 +85,14 @@ export function createServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // Normalize URL prefix for serverless environments
+  app.use((req, _res, next) => {
+    if (req.url && !req.url.startsWith("/api") && req.url !== "/health") {
+      req.url = "/api" + (req.url.startsWith("/") ? req.url : "/" + req.url);
+    }
+    next();
+  });
+
   // ==========================================
   // Public Store & Utility Routes
   // ==========================================

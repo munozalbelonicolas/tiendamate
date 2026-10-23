@@ -20,24 +20,23 @@ import {
 import { Product } from "@shared/api";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { INITIAL_PRODUCTS } from "@/data/initialProducts";
 
 /** ─────────────────────────────────────────────────────────────
  *  ProductDetail — Vista dinámica de detalle de producto
  *  Ruta: /product/:id
- *
- *  Estrategia:
- *  - useParams() extrae el ID de la URL
- *  - fetch a /api/products/:id (endpoint ya existente en el servidor)
- *  - useCart() accede al carrito global sin necesidad de pasar props
- *  - useAuth() para verificar autenticación antes de agregar al carrito
  * ───────────────────────────────────────────────────────────── */
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  const fallbackProduct = INITIAL_PRODUCTS.find(
+    (p) => String(p.id) === String(id) || p.slug === id || p.sku === id
+  );
+
   // Estado del producto y carga
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState<Product | null>(fallbackProduct || null);
+  const [loading, setLoading] = useState(!fallbackProduct);
   const [error, setError] = useState<string | null>(null);
 
   // Carrito y autenticación desde el contexto global
@@ -52,7 +51,9 @@ export default function ProductDetail() {
   useEffect(() => {
     if (!id) return;
 
-    setLoading(true);
+    if (!fallbackProduct) {
+      setLoading(true);
+    }
     setError(null);
 
     fetch(`/api/products/${id}`)
@@ -61,9 +62,13 @@ export default function ProductDetail() {
         return res.json();
       })
       .then((data: Product) => setProduct(data))
-      .catch((err) => setError(err.message))
+      .catch((err) => {
+        if (!fallbackProduct) {
+          setError(err.message);
+        }
+      })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, fallbackProduct]);
 
   // ── Manejador: Agregar al carrito (Habilitado para todos) ──
   const handleAddToCart = () => {

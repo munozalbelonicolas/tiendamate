@@ -24,10 +24,11 @@ import { useCart } from "@/context/CartContext";
 import { useNavigate } from "react-router-dom";
 import { Product } from "@shared/api";
 import { toast } from "sonner";
+import { INITIAL_PRODUCTS } from "@/data/initialProducts";
 
 export default function Index() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [loadingProducts, setLoadingProducts] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [sortBy, setSortBy] = useState<"featured" | "price-asc" | "price-desc">("featured");
@@ -39,11 +40,16 @@ export default function Index() {
 
   useEffect(() => {
     fetch("/api/products")
-      .then((res) => res.json())
-      .then((data: Product[]) => {
-        setProducts(data);
+      .then((res) => {
+        if (!res.ok) throw new Error("API status " + res.status);
+        return res.json();
       })
-      .catch((err) => console.error("Error cargando productos:", err))
+      .then((data: Product[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setProducts(data);
+        }
+      })
+      .catch((err) => console.warn("Catálogo inicial precargado activo:", err))
       .finally(() => setLoadingProducts(false));
   }, []);
 

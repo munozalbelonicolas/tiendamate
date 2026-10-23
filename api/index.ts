@@ -2,14 +2,11 @@ import { createServer } from "../server/index";
 
 const app = createServer();
 
-// Ensure requests without /api prefix match our Express API routes when rewritten on Vercel
-app.use((req, res, next) => {
-  if (!req.url.startsWith("/api") && req.url !== "/health") {
+export default function handler(req: any, res: any) {
+  // Normalize URL before Express handles routing:
+  // On Vercel, requests to /api/products might arrive with or without the /api prefix
+  if (req.url && !req.url.startsWith("/api") && req.url !== "/health") {
     req.url = "/api" + (req.url.startsWith("/") ? req.url : "/" + req.url);
   }
-  next();
-});
-
-export default function handler(req: any, res: any) {
   return app(req, res);
 }

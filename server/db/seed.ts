@@ -153,26 +153,22 @@ export function seedSystemRolesAndTenant(
 }
 
 export function seedDemoData(db: DatabaseSync, tenantId: string): void {
-  // Check if categories or products exist already
-  const prodCount = (db.prepare("SELECT COUNT(*) as c FROM products WHERE tenant_id = ?").get(tenantId) as { c: number })?.c;
-  if (prodCount > 0) {
-    return; // Already seeded
-  }
-
   db.exec("BEGIN TRANSACTION;");
-
   try {
     // 1. Categories
-    const insertCat = db.prepare(`
-      INSERT INTO categories (tenant_id, name, slug, description, image_url, sort_order, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, 1)
-    `);
+    const existingCats = db.prepare("SELECT id, name, slug FROM categories WHERE tenant_id = ?").all(tenantId) as Array<{ id: number; name: string; slug: string }>;
+    if (existingCats.length === 0) {
+      const insertCat = db.prepare(`
+        INSERT INTO categories (tenant_id, name, slug, description, image_url, sort_order, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, 1)
+      `);
 
-    insertCat.run(tenantId, "Mates", "mates", "Mates de calabaza, madera, cerámica y alpaca", "/images/mate-imperial-calabaza.jpg", 1);
-    insertCat.run(tenantId, "Termos", "termos", "Termos de acero inoxidable y alta retención térmica", "/images/termo-acero-inoxidable.jpg", 2);
-    insertCat.run(tenantId, "Bombillas", "bombillas", "Bombillas de alpaca cincelada y acero quirúrgico", "/images/bombilla-alpaca-labrada.jpg", 3);
-    insertCat.run(tenantId, "Yerbas", "yerbas", "Yerbas estacionadas, blends artesanales y orgánicas", "/images/yerba-organica-1kg.jpg", 4);
-    insertCat.run(tenantId, "Accesorios", "accesorios", "Materas de cuero, porta yerbas, cepillos y fundas", "/images/matera-cuero-portatermo.jpg", 5);
+      insertCat.run(tenantId, "Mates", "mates", "Mates de calabaza, madera, cerámica y alpaca", "/images/mate-imperial-calabaza.jpg", 1);
+      insertCat.run(tenantId, "Termos", "termos", "Termos de acero inoxidable y alta retención térmica", "/images/termo-acero-inoxidable.jpg", 2);
+      insertCat.run(tenantId, "Bombillas", "bombillas", "Bombillas de alpaca cincelada y acero quirúrgico", "/images/bombilla-alpaca-labrada.jpg", 3);
+      insertCat.run(tenantId, "Yerbas", "yerbas", "Yerbas estacionadas, blends artesanales y orgánicas", "/images/yerba-organica-1kg.jpg", 4);
+      insertCat.run(tenantId, "Accesorios", "accesorios", "Materas de cuero, porta yerbas, cepillos y fundas", "/images/matera-cuero-portatermo.jpg", 5);
+    }
 
     const categories = db.prepare("SELECT id, name, slug FROM categories WHERE tenant_id = ?").all(tenantId) as Array<{ id: number; name: string; slug: string }>;
     const catMap = new Map(categories.map((c) => [c.slug, c.id]));
@@ -615,28 +611,37 @@ export function seedDemoData(db: DatabaseSync, tenantId: string): void {
       },
     ];
 
+    const checkProduct = db.prepare("SELECT id FROM products WHERE tenant_id = ? AND sku = ?");
+
     for (const p of productsSeed) {
-      const catId = catMap.get(p.categorySlug) || null;
-      insertProduct.run(
-        tenantId,
-        p.sku,
-        p.name,
-        p.slug,
-        p.description,
-        catId,
-        p.categoryName,
-        p.price,
-        p.promoPrice,
-        p.cost,
-        p.stock,
-        p.minStockAlert,
-        p.isPublished,
-        p.isFeatured,
-        p.imageUrl,
-        p.specs,
-        p.seoTitle,
-        p.seoDescription
-      );
+      if (!checkProduct.get(tenantId, p.sku)) {
+        const catId = catMap.get(p.categorySlug) || null;
+        insertProduct.run(
+          tenantId,
+          p.sku,
+          p.name,
+          p.slug,
+          p.description,
+          catId,
+          p.categoryName,
+          p.price,
+          p.promoPrice,
+          p.cost,
+          p.stock,
+          p.minStockAlert,
+          p.isPublished,
+          p.isFeatured,
+          p.imageUrl,
+          p.specs,
+          p.seoTitle,
+          p.seoDescription
+        );
+      }
+    }
+
+    const orderCount = (db.prepare("SELECT COUNT(*) as c FROM orders WHERE tenant_id = ?").get(tenantId) as { c: number })?.c || 0;
+    if (orderCount > 0) {
+      return; // Orders and initial movements already seeded
     }
 
     const insertedProds = db.prepare("SELECT id, sku, name, stock FROM products WHERE tenant_id = ?").all(tenantId) as Array<{

@@ -22,8 +22,8 @@ export function getDatabase(): DatabaseSync {
   // Always seed system roles, permissions, and tenant
   seedSystemRolesAndTenant(db, config.tenantId, config.initialAdminEmail);
 
-  // In DEMO environment, seed demo data if empty
-  if (config.appEnv === "demo") {
+  // In demo or production environment (not testing), seed demo catalog data if missing
+  if (config.appEnv !== "testing") {
     seedDemoData(db, config.tenantId);
   }
 
